@@ -1,5 +1,7 @@
 import "package:flutter/material.dart";
 import 'package:shopping_list/data/categories.dart';
+import 'package:shopping_list/models/category.dart';
+import 'package:shopping_list/models/grocery_item.dart';
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -9,11 +11,33 @@ class NewItem extends StatefulWidget {
 }
 
 class _NewItemState extends State<NewItem> {
+  final _formKey = GlobalKey<FormState>();
+  var _enteredName = '';
+  var _enteredQuantity = 1;
+  var _selectedCategory = categories[Categories.vegetables]!;
+
+  void _saveItem() {
+    _formKey.currentState!.validate();
+    {
+      _formKey.currentState!.save();
+
+      Navigator.of(context).pop(
+        GroceryItem(
+          id: DateTime.now().toString(),
+          name: _enteredName,
+          quantity: _enteredQuantity,
+          category: _selectedCategory,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Add New Item')),
       body: Form(
+        key: _formKey,
         child: Column(
           children: [
             TextFormField(
@@ -21,13 +45,19 @@ class _NewItemState extends State<NewItem> {
               decoration: const InputDecoration(label: Text('Name')),
               validator: (value) =>
                   value!.trim().isEmpty ? 'Please enter a name' : null,
+              onSaved: (value) {
+                if (value != null) {
+                  _enteredName = value;
+                }
+              },
             ),
             Row(
               children: [
                 Expanded(
                   child: TextFormField(
                     decoration: const InputDecoration(label: Text('Quantity')),
-                    initialValue: '1',
+                    initialValue: _enteredQuantity.toString(),
+                    keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value == null ||
                           value.trim().isEmpty ||
@@ -36,6 +66,11 @@ class _NewItemState extends State<NewItem> {
                         return 'Please enter a valid quantity';
                       }
                       return null;
+                    },
+                    onSaved: (value) {
+                      if (value != null) {
+                        _enteredQuantity = int.parse(value);
+                      }
                     },
                   ),
                 ),
@@ -59,8 +94,28 @@ class _NewItemState extends State<NewItem> {
                           ),
                         ),
                     ],
-                    onChanged: (value) {},
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCategory = value!;
+                      });
+                    },
                   ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Reset'),
+                ),
+                ElevatedButton(
+                  onPressed: _saveItem,
+                  child: const Text('Add Item'),
                 ),
               ],
             ),
