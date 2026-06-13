@@ -17,11 +17,14 @@ class _NewItemState extends State<NewItem> {
   var _enteredName = '';
   var _enteredQuantity = 1;
   var _selectedCategory = categories[Categories.vegetables]!;
+  var _isSending = false;
 
   void _saveItem() async {
-    _formKey.currentState!.validate();
-    {
+    if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      setState(() {
+        _isSending = true;
+      });
 
       final url = Uri.https(
         "flutter-prep-a74c4-default-rtdb.firebaseio.com",
@@ -38,13 +41,19 @@ class _NewItemState extends State<NewItem> {
         }),
       );
 
-      print(response.body);
-      print(response.statusCode);
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
 
       if (!context.mounted) {
         return;
       }
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(
+        GroceryItem(
+          id: responseData['name'],
+          name: _enteredName,
+          quantity: _enteredQuantity,
+          category: _selectedCategory,
+        ),
+      );
 
       // Navigator.of(context).pop(
     }
@@ -126,14 +135,18 @@ class _NewItemState extends State<NewItem> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: _isSending
+                      ? null
+                      : () {
+                          Navigator.pop(context);
+                        },
                   child: const Text('Reset'),
                 ),
                 ElevatedButton(
-                  onPressed: _saveItem,
-                  child: const Text('Add Item'),
+                  onPressed: _isSending ? null : _saveItem,
+                  child: _isSending
+                      ? const CircularProgressIndicator()
+                      : const Text('Add Item'),
                 ),
               ],
             ),
