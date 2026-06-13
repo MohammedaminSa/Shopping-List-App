@@ -16,6 +16,7 @@ class GroceryList extends StatefulWidget {
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
   var _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -29,6 +30,21 @@ class _GroceryListState extends State<GroceryList> {
       "shopping-list.json",
     );
     final response = await http.get(url);
+
+    if (response.statusCode >= 400) {
+      setState(() {
+        _error = "Failed to fetch data. Please try again later.";
+        _isLoading = false;
+      });
+      return;
+    }
+
+    if (response.body == "null") {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
 
     final Map<String, dynamic> listData = jsonDecode(response.body);
     final List<GroceryItem> loadedItems = [];
@@ -62,6 +78,26 @@ class _GroceryListState extends State<GroceryList> {
     }
   }
 
+  void _removeItem(GroceryItem item) async {
+    final index = _groceryItems.indexOf(item);
+
+    final url = Uri.https(
+      "flutter-prep-a74c4-default-rtdb.firebaseio.com",
+      "shopping-list/${item.id}.json",
+    );
+    final response = await http.delete(url);
+
+    if (response.statusCode >= 400) {
+      setState(() {
+        _groceryItems.insert(index, item);
+      });
+
+      setState(() {
+        _groceryItems.remove(item);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget content = const Center(child: Text('No items added yet.'));
@@ -81,8 +117,13 @@ class _GroceryListState extends State<GroceryList> {
             color: _groceryItems[index].category.color,
           ),
           trailing: Text(_groceryItems[index].quantity.toString()),
+          onLongPress: () => _removeItem(_groceryItems[index]),
         ),
       );
+    }
+
+    if (_isLoading == false && _error != null) {
+      content = Center(child: Text(_error!));
     }
     return Scaffold(
       appBar: AppBar(
